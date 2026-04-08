@@ -1,6 +1,10 @@
-# HuatuoGPT-Vision & LLaVA-Qwen2 Optimized Dependencies
-# 제작진 권장 4.40.0 대신, llava_qwen2를 정식 지원하는 4.42.2 이상을 사용합니다.
+# 핵심 라이브러리 (PyTorch 2.4 이상 필수)
+torch>=2.4.0
+torchvision>=0.19.0
 transformers>=4.42.2
+accelerate>=0.29.0
+
+# HuatuoGPT 의존성
 timm>=0.9.12
 einops
 sentencepiece
@@ -12,11 +16,5 @@ opencv-python
 pandas
 tqdm
 numpy<2.0
-
-# 가속화 및 분산 환경용
-accelerate>=0.29.0
 peft
 protobuf
-
-# (권장) 4090의 성능을 100% 쓰기 위해 터미널에서 별도로 설치하세요:
-# pip install flash-attn --no-build-isolation
