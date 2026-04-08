@@ -96,24 +96,7 @@ SLAKE 데이터셋의 `q_type` 필드를 활용하여 다음과 같이 분석합
 
 ---
 
-## 6. 프로젝트 구조 변경점
 
-`MedAI-project/
-├── data/
-│   └── slake/                      # SLAKE 데이터 (English)
-├── src/
-│   ├── perturbations.py            # 동일하게 유지
-│   ├── dataset_slake.py            # SLAKE 전용 로더 (q_type 필터링 기능 추가)
-│   ├── evaluator.py                # Exact Match (EM) 및 Yes/No 채점 로직
-│   └── models/
-│       └── huatuogpt.py            # HuatuoGPT-Vision-7B 전용 Wrapper
-├── scripts/
-│   ├── run_slake_exp.py            # SLAKE 실험 실행 스크립트
-│   └── analyze_slake.py            # 질문 유형(q_type)별 성능 분석
-└── results/
-    └── slake_huatuogpt_results.csv`
-
----
 
 ### 💡 HuatuoGPT 담당자 주의사항
 
