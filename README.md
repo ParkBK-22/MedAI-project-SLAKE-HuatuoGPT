@@ -63,22 +63,6 @@
 
 Bash
 
-`# 1. SLAKE 데이터셋 다운로드 및 구조화
-python scripts/setup_slake.py --lang en
-
-# 2. HuatuoGPT 환경 확인 (transformers 4.40.0)
-pip install -r requirements_huatuogpt.txt
-
-# 3. 실험 실행 (Short Answer 프롬프트 적용)
-python scripts/run_slake_exp.py --model huatuogpt --condition all --prompt_type short`
-
-### 프롬프트 템플릿 (src/dataset.py)
-
-Python
-
-`# HuatuoGPT용 SLAKE 프롬프트
-SYSTEM_PROMPT = "You are a professional radiologist. Answer the question in a single word or a short phrase based on the image."
-USER_PROMPT = f"Question: {question}\nAnswer:"`
 
 ---
 
