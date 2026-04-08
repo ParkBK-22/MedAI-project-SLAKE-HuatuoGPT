@@ -1,0 +1,26 @@
+# 실험 기본 설정
+project_name: "SLAKE-Huatuo-Perturbation"
+seed: 42
+
+# 경로 설정 (Vast.ai 환경 기준)
+data:
+  json_path: "./data/slake/questions.json"
+  img_dir: "./data/slake/images"
+  output_dir: "./results"
+
+# 모델 설정
+model:
+  name: "FreedomIntelligence/HuatuoGPT-Vision-7B"
+  device: "cuda"
+  prompt_template: "<|user|>\n<image>\n{question}\nAnswer the question concisely in a single word or short phrase.\n<|assistant|>\n"
+  
+
+# 이미지 변형 파라미터
+perturbation:
+  patch_size: 16
+  lpf_sigma: 3
+  hpf_sigma: 25
+  conditions: ["original", "black", "lpf", "hpf", "patch_shuffle"]
+
+# 분석용 질문 타입
+analysis_types: ["Location", "Organ", "Shape", "Size", "Modality"]

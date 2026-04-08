@@ -1,0 +1,26 @@
+# --- Core Deep Learning ---
+torch==2.2.1
+torchvision==0.17.1
+transformers>=4.40.0
+accelerate>=0.29.0
+sentencepiece
+
+# --- Optimization & Inference ---
+bitsandbytes>=0.43.0
+scipy
+peft
+
+# --- Image Processing & Computer Vision ---
+numpy<2.0.0
+opencv-python-headless
+Pillow
+scikit-image
+
+# --- Data & Config Management ---
+pandas
+pyyaml
+tqdm
+
+# --- Server & Utility ---
+einops
+packaging
