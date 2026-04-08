@@ -1,10 +1,9 @@
 """
-HuatuoGPT-Vision 모델 래퍼
-공식 CLI와 transformers 기반 두 가지 방식 지원
+HuatuoGPT-Vision 모델 래퍼 (최신 Transformers 4.42+ 호환 버전)
 """
 
 import torch
-from transformers import AutoProcessor, AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoProcessor, AutoModelForVision2Seq
 from PIL import Image
 import warnings
 
@@ -16,20 +15,16 @@ class HuatuoInference:
     def __init__(self, config, device="cuda", use_official_cli=False):
         """
         HuatuoGPT-Vision-7B 모델 초기화
-        
-        Args:
-            config: 설정 객체
-            device: 'cuda' or 'cpu'
-            use_official_cli: True면 공식 HuatuoChatbot 사용, False면 transformers 직접 사용
         """
         self.device = device
         self.model_name = config['model']['name']
-        self.prompt_template = config['model'].get('prompt_template', '')
-        self.max_new_tokens = config['model'].get('max_new_tokens', 20)
+        # HuatuoGPT 공식 프롬프트 템플릿 적용
+        self.prompt_template = "<|user|>\n<image>\n{question}</s>\n<|assistant|>\n"
+        self.max_new_tokens = config['model'].get('max_new_tokens', 128)
         self.temperature = config['model'].get('temperature', 0.0)
         self.use_official_cli = use_official_cli
         
-        print(f"Loading HuatuoGPT-Vision model: {self.model_name}")
+        print(f"🚀 Loading HuatuoGPT-Vision model: {self.model_name}")
         
         if use_official_cli:
             self._init_official_cli()
@@ -37,153 +32,105 @@ class HuatuoInference:
             self._init_transformers()
     
     def _init_official_cli(self):
-        """공식 HuatuoChatbot 초기화"""
+        """공식 HuatuoChatbot 초기화 (유지)"""
         try:
             from cli import HuatuoChatbot
             self.bot = HuatuoChatbot(self.model_name)
-            self.model = None
-            self.processor = None
-            self.tokenizer = None
             print("✓ HuatuoChatbot (Official) loaded successfully")
-        except ImportError:
-            print("⚠ Warning: cli.py not found. Falling back to transformers...")
-            self._init_transformers()
         except Exception as e:
-            print(f"⚠ Warning: Could not load HuatuoChatbot ({e})")
+            print(f"⚠ Warning: Could not load HuatuoChatbot ({e}). Falling back to transformers...")
             self._init_transformers()
     
     def _init_transformers(self):
-        """Transformers 기반 초기화 (LLaVA 방식)"""
+        """Transformers 기반 초기화 (llava_qwen2 아키텍처 최적화)"""
         try:
             self.bot = None
             
-            # Processor 로드 (이미지 전처리 담당)
+            # 1. Processor 로드 (이미지 + 텍스트 통합 처리)
             self.processor = AutoProcessor.from_pretrained(
                 self.model_name,
                 trust_remote_code=True
             )
             
-            # 모델 로드
-            self.model = AutoModelForCausalLM.from_pretrained(
+            # 2. VLM 전용 모델 로드 (AutoModelForVision2Seq 사용)
+            self.model = AutoModelForVision2Seq.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                device_map=self.device,
+                device_map="auto", # 4090 메모리 관리를 위해 auto 권장
                 trust_remote_code=True
             )
             self.model.eval()
             
-            # 토크나이저 (fallback 용)
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True,
-                use_fast=False
-            )
-            
-            print("✓ Model loaded successfully (Transformers + LLaVA)")
+            print("✓ Model loaded successfully (Transformers + Vision2Seq)")
             
         except Exception as e:
-            print(f"⚠ Warning: Could not load model ({e})")
-            print("  Falling back to mock inference for testing")
+            print(f"❌ Error: Could not load model ({e})")
             self.model = None
             self.processor = None
-            self.tokenizer = None
 
     def generate_answer(self, image, question):
-        """
-        이미지와 질문으로부터 답변 생성
-        
-        Args:
-            image: PIL Image 객체 또는 numpy array
-            question: 질문 문자열
-            
-        Returns:
-            생성된 답변 문자열
-        """
-        # 이미지 정규화
+        """이미지와 질문으로부터 답변 생성"""
+        # 이미지 전처리 (RGB 변환)
         if isinstance(image, Image.Image):
             image = image.convert('RGB')
         else:
             import numpy as np
             image = Image.fromarray(image).convert('RGB')
         
-        # 공식 CLI 사용
+        # 공식 CLI 사용 시
         if self.bot is not None:
             return self._inference_official(image, question)
         
-        # Transformers 사용
+        # 최신 Transformers 사용 시
         elif self.model is not None and self.processor is not None:
             return self._inference_transformers(image, question)
         
-        # 모델 로드 실패 - Mock 모드
-        else:
-            return "test_answer"
-    
-    def _inference_official(self, image, question):
-        """공식 HuatuoChatbot API로 추론"""
-        try:
-            import tempfile
-            import os
-            
-            # 임시 파일에 이미지 저장 (CLI는 파일 경로를 요구함)
-            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-                image.save(tmp.name)
-                temp_path = tmp.name
-            
-            try:
-                # 공식 API 호출
-                output = self.bot.inference(question, [temp_path])
-                return output.strip() if output else "no_answer"
-            finally:
-                # 임시 파일 정리
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-                    
-        except Exception as e:
-            print(f"Error in official inference: {e}")
-            return "error"
+        return "error: model not loaded"
     
     def _inference_transformers(self, image, question):
-        """Transformers + LLaVA로 추론"""
+        """최신 LLaVA-Qwen2 파이프라인으로 추론"""
         try:
-            # 프롬프트 구성
-            if self.prompt_template:
-                prompt = self.prompt_template.format(question=question)
-            else:
-                # 기본 프롬프트 (LLaVA 포맷)
-                prompt = f"Question: {question}\nAnswer:"
+            # 1. HuatuoGPT 전용 프롬프트 구성
+            prompt = self.prompt_template.format(question=question)
             
-            # Processor: 이미지 + 텍스트 전처리
+            # 2. Processor를 통해 입력값 준비
             inputs = self.processor(
-                text=prompt,
-                images=image,
-                return_tensors="pt",
-                padding=True
-            ).to(self.device)
+                text=prompt, 
+                images=image, 
+                return_tensors="pt"
+            ).to("cuda", torch.float16)
             
-            # 모델 추론
+            # 3. 답변 생성
             with torch.no_grad():
-                outputs = self.model.generate(
+                output_ids = self.model.generate(
                     **inputs,
                     max_new_tokens=self.max_new_tokens,
-                    temperature=self.temperature,
-                    do_sample=False,
-                    top_p=0.9,
-                    eos_token_id=self.processor.tokenizer.eos_token_id
+                    do_sample=self.temperature > 0,
+                    temperature=self.temperature if self.temperature > 0 else 1.0,
+                    use_cache=True
                 )
             
-            # 텍스트 디코딩
+            # 4. 결과 디코딩 (입력 프롬프트 제외하고 정답만 추출)
+            input_token_len = inputs.input_ids.shape[1]
             response = self.processor.decode(
-                outputs[0],
+                output_ids[0][input_token_len:], 
                 skip_special_tokens=True
-            )
+            ).strip()
             
-            # 프롬프트 부분 제거하고 답변만 추출
-            if "Answer:" in response:
-                response = response.split("Answer:")[-1].strip()
-            
-            return response.strip() if response else "no_answer"
+            return response if response else "no_answer"
             
         except Exception as e:
-            print(f"Error during transformers inference: {e}")
+            print(f"Error during inference: {e}")
             return "error"
-    
+
+    def _inference_official(self, image, question):
+        """기존 공식 API 추론 로직 (유지)"""
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+            image.save(tmp.name)
+            temp_path = tmp.name
+        try:
+            output = self.bot.inference(question, [temp_path])
+            return output.strip() if output else "no_answer"
+        finally:
+            if os.path.exists(temp_path): os.remove(temp_path)
