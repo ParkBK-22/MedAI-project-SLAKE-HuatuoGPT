@@ -1,19 +1,30 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor
 from PIL import Image
+import warnings
+
+# Transformer 경고 무시
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 def main():
     model_id = "FreedomIntelligence/HuatuoGPT-Vision-7B"
     print(f"🚀 Loading model: {model_id}...")
     
     try:
-        # 1. 모델 및 프로세서 로드 (LLaVA-Qwen2 구조 최적화)
-        # AutoProcessor는 이미지 전처리와 토큰화를 한 번에 처리합니다.
-        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        # 1. 모델 및 프로세서 로드
+        # trust_remote_code=True는 HuatuoGPT의 커스텀 코드 실행을 허용합니다.
+        print("📥 Loading processor...")
+        processor = AutoProcessor.from_pretrained(
+            model_id, 
+            trust_remote_code=True
+        )
+        
+        print("📥 Loading model (this may take a few minutes on first run)...")
         model = AutoModelForCausalLM.from_pretrained(
             model_id, 
-            torch_dtype=torch.float16, # 4090에서는 float16이 안정적입니다.
-            device_map="auto", 
+            torch_dtype=torch.float16,
+            device_map="auto",
             trust_remote_code=True
         )
         model.eval()
