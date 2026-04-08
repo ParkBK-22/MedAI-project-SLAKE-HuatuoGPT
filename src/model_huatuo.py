@@ -70,22 +70,27 @@ class HuatuoInference:
 
     def generate_answer(self, image, question):
         """이미지와 질문으로부터 답변 생성"""
-        # 이미지 전처리 (RGB 변환)
-        if isinstance(image, Image.Image):
-            image = image.convert('RGB')
-        else:
-            import numpy as np
-            image = Image.fromarray(image).convert('RGB')
+        try:
+            # 이미지 전처리 (RGB 변환)
+            if isinstance(image, Image.Image):
+                image = image.convert('RGB')
+            else:
+                import numpy as np
+                image = Image.fromarray(image).convert('RGB')
+            
+            # 공식 CLI 사용 시
+            if self.bot is not None:
+                return self._inference_official(image, question)
+            
+            # 최신 Transformers 사용 시
+            elif self.model is not None and self.processor is not None:
+                return self._inference_transformers(image, question)
+            
+            # 모델 미로드 시: 기본 응답
+            return "unknown"
         
-        # 공식 CLI 사용 시
-        if self.bot is not None:
-            return self._inference_official(image, question)
-        
-        # 최신 Transformers 사용 시
-        elif self.model is not None and self.processor is not None:
-            return self._inference_transformers(image, question)
-        
-        return "error: model not loaded"
+        except Exception as e:
+            return "error"
     
     def _inference_transformers(self, image, question):
         """최신 LLaVA-Qwen2 파이프라인으로 추론"""

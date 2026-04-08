@@ -115,6 +115,13 @@ def run_experiment(config_path):
     model = HuatuoInference(cfg, device=cfg['model']['device'], use_official_cli=False)
     print(f"  ✓ HuatuoGPT-Vision initialized")
     
+    # 모델 로드 상태 확인
+    if model.model is None and model.bot is None:
+        print("\n⚠️  WARNING: Model failed to load!")
+        print("   Attempting fallback: Installing latest transformers...")
+        print("   Run: pip install git+https://github.com/huggingface/transformers.git --upgrade")
+        print("   Then restart the experiment.\n")
+    
     results = []
     
     # 4. 메인 실험 루프

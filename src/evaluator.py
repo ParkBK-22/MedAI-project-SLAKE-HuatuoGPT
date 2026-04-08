@@ -8,7 +8,11 @@ class SlakeEvaluator:
     @staticmethod
     def clean_text(text):
         """소문자 변환, 특수문자 제거, 공백 정리"""
-        text = text.lower()
+        # None 값 처리
+        if text is None or text == "" or text == "nan":
+            return ""
+        
+        text = str(text).lower()
         text = re.sub(r'[^\w\s]', '', text)
         return text.strip()
 
@@ -58,6 +62,12 @@ class SlakeEvaluator:
         Returns:
             정확도 (0 or 1)
         """
+        # None 값 또는 빈 문자열 처리
+        if prediction is None or prediction == "" or prediction == "error":
+            return 0
+        if ground_truth is None or ground_truth == "":
+            return 0
+        
         # Yes/No 질문 판정 및 평가
         if self.is_yes_no_question(question):
             return self.evaluate_yes_no(prediction, ground_truth)
@@ -66,6 +76,6 @@ class SlakeEvaluator:
         pred = self.clean_text(prediction)
         gt = self.clean_text(ground_truth)
         
-        if gt in pred:
+        if gt in pred or pred in gt:
             return 1
         return 0
