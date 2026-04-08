@@ -1,7 +1,7 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoProcessor
 from PIL import Image
 import warnings
+import os
 
 # Transformer 경고 무시
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -12,8 +12,9 @@ def main():
     print(f"🚀 Loading model: {model_id}...")
     
     try:
-        # 1. 모델 및 프로세서 로드
-        # trust_remote_code=True는 HuatuoGPT의 커스텀 코드 실행을 허용합니다.
+        # HuatuoGPT 공식 커스텀 로더 사용
+        from transformers import AutoProcessor, CLIPImageProcessor
+        
         print("📥 Loading processor...")
         processor = AutoProcessor.from_pretrained(
             model_id, 
@@ -21,12 +22,26 @@ def main():
         )
         
         print("📥 Loading model (this may take a few minutes on first run)...")
-        model = AutoModelForCausalLM.from_pretrained(
-            model_id, 
-            torch_dtype=torch.float16,
-            device_map="auto",
-            trust_remote_code=True
+        # 커스텀 모델 클래스를 직접 불러오기
+        model = torch.hub.load(
+            'FreedomIntelligence/HuatuoGPT-Vision-7B',
+            'huatuo_vision_model',
+            pretrained=True,
+            trust_repo_owner=True,
+            device='cuda' if torch.cuda.is_available() else 'cpu'
         )
+        
+        if model is None:
+            # torch.hub 실패 시 fallback
+            print("ℹ️  Using transformers fallback...")
+            from transformers import AutoModelForCausalLM
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id, 
+                torch_dtype=torch.float16,
+                device_map="auto",
+                trust_remote_code=True
+            )
+        
         model.eval()
         print("✅ Model & Processor loaded successfully!")
 
